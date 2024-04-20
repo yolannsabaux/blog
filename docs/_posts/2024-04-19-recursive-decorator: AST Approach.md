@@ -50,9 +50,9 @@ def decorator(func):
 
         ast.fix_missing_locations(func_ast)
         module_compile = compile(func_ast, '<string>', "exec")
-        exec(module_compile, globals())
+        exec(module_compile, func.__globals__)
 
-        modified_func = globals()[func.__name__]
+        modified_func = func.__globals__[func.__name__]
 
         return modified_func(*args, **kwargs)
     return wrapper
@@ -115,11 +115,11 @@ def bar():
 recursive_decorator(bar)
 ```
 
-But we need to find, at runtime, all the inner functions, decorate them, and then decorate all their inner functions recursively. How can we do that?
+But we need to find, at runtime, all the inner functions, decorate them, and then recursively decorate all their inner functions. How can we do that?
 
 ## Using AST
 
-An AST (Abstract Syntax Tree) is a data tree representing the structure of a piece of code where each node corresponds to an element of the code such as an expression, statement, function, etc.
+An AST (Abstract Syntax Tree) is a data tree representing the structure of a piece of code where each node corresponds to an element of the code, such as an expression, statement, function, etc.
 
 With tools provided by the Python Standard Library, we can identify the nodes we want to modify and inject our `recursive-decorator`.
 
@@ -177,8 +177,7 @@ def foo():
     decorator(bar)
 ```
 
-An easy way to so is to inject in the Call Node another Call Node with the `decorator` as the `func` and `bar` as argument, such as:
-
+An easy way to do so is to inject into the `Call` Node another `Call` Node with the `decorator` as the `func` and `bar` as an argument, such as:
 ```diff
             body=[
                 Expr(
@@ -201,15 +200,15 @@ An easy way to so is to inject in the Call Node another Call Node with the `deco
 
 ![5b643732a7b89f327301e7516f092af8.png](/blog//assets/5b643732a7b89f327301e7516f092af8.png)
 
-* In green: the new node Call with decorator
-* In blue: the node containing the `bar` function 
-* In red: the deleted decorator of the main function to avoid cyclical decoration**
+* In green: the new `Call` node with the decorator.
+* In blue: the node containing the `bar` function.
+* In red: the deleted decorator of the main function to avoid cyclical decoration.
 
 # First Draft
 
 ## Simple Decorator
 
-We need to return the function definition modified. A simple decorator returning the function would be
+We need to return the modified function definition. A simple decorator that returns the function would be:
 
 ```py
 def decorator(func):
@@ -270,9 +269,9 @@ We only need the function definition of `foo`. In other words, what is inside of
 func_def_node = func_ast.body[0]
 ```
 
-#### Get the `Call` node
+#### Get the `Expr` node
 
-No we we have the `FunctionDef` node:
+Now we have the `FunctionDef` node:
 
 ```
         FunctionDef(
@@ -303,7 +302,7 @@ Expr(
         keywords=[]))
 ```
 
-#### Get the `func` from the `Call` node
+#### Get the `func`
 
 From there we can extract the functions and its args
 
@@ -311,12 +310,11 @@ From there we can extract the functions and its args
 node_func = expr_node.value.func
 ```
 
-We will use it to inject it as a parameter of our new `Call` node containg the `decorator` function.
+We will use it to inject it as a parameter of our new `Call` node containing the `decorator` function.
 
-### Create the new node
+### Create the New Node
 
-We need to replace the `Call node` with a new `node`. We can again use `ast` to create a node from scratch by passing it the arguments we need, that is another `Call node` which will call the `decorator` and use `bar` as a parameter:
-
+We need to replace the `Call` node with a new one. We can again use `ast` to create a node from scratch by passing it the arguments we need, that is another `Call` node which will call the `decorator` and use `bar` as a parameter:
 ```python
         expr_node.value = ast.Call(
             func=ast.Call(
@@ -329,10 +327,9 @@ We need to replace the `Call node` with a new `node`. We can again use `ast` to 
         )
 ```
 
-### Compile everything or where the magic happens!
+### Compile Everything (Or Where the Magic Happens!)
 
-Now that we have modified our AST we need a way to make it understanble for the CPython interpreter. To do so, we need to compile it:
-
+Now that we have modified our AST, we need a way to make it understandable for the CPython interpreter. To do so, we need to compile it:
 ```py
         ast.fix_missing_locations(func_ast) 	# 1
         module_compile = compile(func_ast, 'compiled.py', 'exec') 	# 2
@@ -341,10 +338,10 @@ Now that we have modified our AST we need a way to make it understanble for the 
         modified_func = globals()[func.__name__] 	# 4
 ```
 
-1.  `fix_missing_locations` is to fix the line numbers and the columns offsets that have changed following our ast modification; [documentation](https://docs.python.org/3/library/ast.html#ast.fix_missing_locations)
-2.  Compiles a source (normal string, a byte string, or an AST object) into a code object. The filename `compiled.py` is not really significant but helps debugging. And `exex` is the mode; [documentation](https://docs.python.org/3/library/functions.html#compile)
-3.  The `exec` will bind (in the first iteration) our main function `foo` with a `code` object (`module_compile`) with a certain context (`globals()`) *(1)
-4.  `exec` returns `None`. Therefore, we need to get it directly where it is defined: in the `globals()`
+1. `fix_missing_locations` is used to fix the line numbers and column offsets that have changed following our AST modification; [documentation](https://docs.python.org/3/library/ast.html#ast.fix_missing_locations).
+2. Compiles a source (normal string, a byte string, or an AST object) into a code object. The filename `compiled.py` is not really significant but helps in debugging. And `exec` is the mode; [documentation](https://docs.python.org/3/library/functions.html#compile).
+3. The `exec` will bind (in the first iteration) our main function `foo` with a `code` object (`module_compile`) within a certain context (`globals()`) *(1).
+4. `exec` returns `None`. Therefore, we need to retrieve it directly where it is defined: in the `globals()`.
 
 And voilà!
 
@@ -381,15 +378,15 @@ def decorator(func):
 
 * * *
 
-<sup>*(1) The difference between a code object, a function object or a frame object can be roughly summarised as:</sup>
-<sup>\- code: the most primitive stuff (bytecode: string of one's and zero's)</sup>
-<sup>\- function: has a code object and has an env -> static</sup>
-<sup>\- frame: has a code object and has an env -> at runtime (runtime representation of a function)</sup>
+<sup>*(1) The differences between a code object, a function object, and a frame object can be roughly summarized as follows:</sup>
+<sup>- code: the most primitive form (bytecode: a string of ones and zeros)</sup>
+<sup>- function: contains a code object and an environment -> static</sup>
+<sup>- frame: contains a code object and an environment -> at runtime (runtime representation of a function)</sup>
 
-## Ugh ?
+## Troubleshooting: Why Isn't My Decorator Working?
 
 **Indeed...**
-If you used the decorator on the following snippet code it certainly didn't work:
+If you applied the decorator to the following snippet, it likely didn't work as expected:
 ```python
 def bar():
     print("I'm bar")
@@ -399,17 +396,17 @@ def foo():
     print("I'm foo")
     bar()
 ```
-But don't worry, there just some little adustments we still need to apply and then it will work just fine!
+But don't worry, there are just a few adjustments we still need to apply, and then it will work just fine!
 
 ### Removing the `recursive_decorator` from the `decorator_list`
-If we let the recursive decorator in the list of our main decorated function it will call the decorator again failing at `inspect.py` step.
-The reason: ```"when the function is called, the decorator runs again - so, it gets some re-entrancy in inspect.getsource, at which points it fails."``` [stackoverflow](https://stackoverflow.com/questions/75696056/pythons-inspect-getsource-throws-error-if-used-in-a-decorator)
+If we leave the recursive decorator in the list of our main decorated function, it will call the decorator again, failing at the `inspect.py` step.
+The reason is: "when the function is called, the decorator runs again - so, it gets some re-entrancy in inspect.getsource, at which point it fails." [stackoverflow](https://stackoverflow.com/questions/75696056/pythons-inspect-getsource-throws-error-if-used-in-a-decorator)
 
 There are two solutions:
-1) Don't decorate `foo` with `@decorator` but assign `foo = decorator(foo)` before calling `foo`
-2) During the AST process, get rid of the recursive decorator from the `decorator_list`
+1) Don't decorate `foo` with `@decorator`, but instead assign `foo = decorator(foo)` before calling `foo`.
+2) During the AST process, remove the recursive decorator from the `decorator_list`.
 
-I will choose the second solution so the recursive decorator is applied no matter where we call `foo` from.
+I will choose the second solution, ensuring the recursive decorator is applied no matter where we call `foo` from.
 
 ```diff
         func_def_node = func_ast.body[0]
@@ -423,13 +420,13 @@ I will choose the second solution so the recursive decorator is applied no matte
 ```
 
 
-### Filtering out builtins
+### Filtering Out Builtins
 
-Now, if you the snippet code again you will certainly get the error `TypeError: module, class, method, function, traceback, frame, or code object was expected, got builtin_function_or_method`
+Now, if you run the snippet code again, you will likely encounter the error: `TypeError: module, class, method, function, traceback, frame, or code object was expected, got builtin_function_or_method`.
 
-To avoid it, we need to filter out the builtins functions from the AST modifiation process.
+To avoid this, we need to filter out the builtin functions from the AST modification process.
 
-One simple way is to return directly the function when we meet a `builtins` function. You can modify the decorator this way:
+One simple way to do this is to return the function directly when we encounter a `builtins` function. You can modify the decorator in the following way:
 ```diff
 +import types
 ...
@@ -441,17 +438,17 @@ def decorator(func):
         print(f"I'm decorating {func.__name__}")
 ```
 
-### Iterating over (relevant) nodes
+### Iterating Over (Relevant) Nodes
 
-It seems to run correctly, but there are still one or two big issues.
+It seems to run correctly, but there are still one or two significant issues.
 
-If you run the snipped code the result will be:
+If you run the snippet code, the result will be:
 ```text
 I'm decorating foo
 
 I'm bar
 ```
-Which is definitely not what we want. And if you simply add a variable assignment it is even worst!
+Which is definitely not what we want. And if you simply add a variable assignment, it is even worse!
 ```python
 @decorator
 def foo():
@@ -461,24 +458,24 @@ def foo():
 ```
 **Error**: `AttributeError: 'Constant' object has no attribute 'func'`
 
-The faulty line is `expr_node = func_def_node.body[0]`. We are accesing **only** the first node of the body. But in a real world scenario there are multiple assignment, calls and so on. In the best case, we don't get an error but we don't process every relevant nodes.
+The faulty line is `expr_node = func_def_node.body[0]`. We are accessing **only** the first node of the body. But in a real-world scenario, there are multiple assignments, calls, and so on. In the best case, we don't get an error, but we don't process every relevant node.
 
-The solution is to iterate to every node and only process the ones of interest. So instead of _assigning_ `expr_node = func_def_node.body[0]` we will _iterate_ over `func_def_node.body`:
+The solution is to iterate over every node and only process the ones of interest. So, instead of _assigning_ `expr_node = func_def_node.body[0]`, we will _iterate_ over `func_def_node.body`:
 ```python
-        for node in func_def_node.body:
-            if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
-                continue
+for node in func_def_node.body:
+    if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+        continue
 
-            node_func = node.value.func
-            node.value = ast.Call(
-                func=ast.Call(
-                    func=ast.Name(id=decorator.__name__, ctx=ast.Load()),
-                    args=[node_func],
-                    keywords=[]
-                ),
-                args=[],
-                keywords=[]
-            )
+    node_func = node.value.func
+    node.value = ast.Call(
+        func=ast.Call(
+            func=ast.Name(id=decorator.__name__, ctx=ast.Load()),
+            args=[node_func],
+            keywords=[]
+        ),
+        args=[],
+        keywords=[]
+    )
 ```
 
 ### Passing arguments
@@ -508,6 +505,27 @@ Just add the arguments in args:
                 ),
 +               args=node_args,
                 keywords=[]
+```
+
+### Importing a Decorator from Another Module
+If you define your decorator in a `decorator.py` file and want to use it in `main.py`, you may encounter an error like:
+`NameError: name 'bar' is not defined`.
+
+This error occurs because the decorator lacks knowledge of the context within the `main.py` module. 
+It is aware of `foo` (the first function passed to the decorator) and `print` (since it is a builtin accessible from any module), but it knows nothing about `bar`.
+
+The solution is to provide the context of `func` during the `exec` command, rather than the context of `decorator.py`:
+```diff
+         ast.fix_missing_locations(func_ast)
+         module_compile = compile(func_ast, '<string>', "exec")
+-        exec(module_compile, globals())
++        exec(module_compile, func.__globals__)
+ 
+-        modified_func = globals()[func.__name__]
++        modified_func = func.__globals__[func.__name__]
+ 
+         return modified_func(*args, **kwargs)
+     return wrapper
 ```
 
 And voilà! (really)
@@ -551,9 +569,9 @@ def decorator(func):
 
         ast.fix_missing_locations(func_ast)
         module_compile = compile(func_ast, '<string>', "exec")
-        exec(module_compile, globals())
+        exec(module_compile, func.__globals__)
 
-        modified_func = globals()[func.__name__]
+        modified_func = func.__globals__[func.__name__]
 
         return modified_func(*args, **kwargs)
     return wrapper
