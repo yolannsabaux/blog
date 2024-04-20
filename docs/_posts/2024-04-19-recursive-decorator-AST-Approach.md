@@ -49,7 +49,8 @@ To do this, I'll implement a method modifying the Abstract Syntax Tree (AST) of 
 - Compiling the modified AST back into executable code and executing it, effectively applying the decorator recursively to all nested functions.
 
 
-### Result
+### Result `simple_draft.py`
+
 ```py
 import ast
 import inspect
@@ -64,7 +65,13 @@ def decorator(func):
 
         source_code = inspect.getsource(func)
         func_ast = ast.parse(source_code)
-        func_def_node = func_ast.body[0]
+        # Option 2
+        func_def_node = [node for node in func_ast.body if isinstance(node, ast.FunctionDef)][0]
+
+        # Option 1
+        # func_def_node = func_ast.body[0]
+        # if not isinstance(func_def_node, ast.FunctionDef):
+        #     return func(*args, **kwargs)
 
         for d in func_def_node.decorator_list:
             if d.id == decorator.__name__:
@@ -88,7 +95,7 @@ def decorator(func):
             )
 
         ast.fix_missing_locations(func_ast)
-        module_compile = compile(func_ast, '<string>', "exec")
+        module_compile = compile(func_ast, inspect.getsourcefile(func), "exec")
         exec(module_compile, func.__globals__)
 
         modified_func = func.__globals__[func.__name__]
@@ -335,14 +342,14 @@ We need to replace the `Call` node with a new one. We can again use `ast` to cre
 Now that we have modified our AST, we need a way to make it understandable for the CPython interpreter. To do so, we need to compile it:
 ```py
         ast.fix_missing_locations(func_ast) 	# 1
-        module_compile = compile(func_ast, 'compiled.py', 'exec') 	# 2
+        module_compile = compile(func_ast, inspect.getsourcefile(func), 'exec') 	# 2
         exec(module_compile, globals()) 	# 3
 
         modified_func = globals()[func.__name__] 	# 4
 ```
 
 1. `fix_missing_locations` is used to fix the line numbers and column offsets that have changed following our AST modification; [documentation](https://docs.python.org/3/library/ast.html#ast.fix_missing_locations).
-2. Compiles a source (normal string, a byte string, or an AST object) into a code object. The filename `compiled.py` is not really significant but helps in debugging. And `exec` is the mode; [documentation](https://docs.python.org/3/library/functions.html#compile).
+2. Compiles a source (normal string, a byte string, or an AST object) into a code object. The filename of the function definition. And `exec` is the mode; [documentation](https://docs.python.org/3/library/functions.html#compile).
 3. The `exec` will bind (in the first iteration) our main function `foo` with a `code` object (`module_compile`) within a certain context (`globals()`) *(1).
 4. `exec` returns `None`. Therefore, we need to retrieve it directly where it is defined: in the `globals()`.
 
@@ -370,7 +377,7 @@ def decorator(func):
         )
 
         ast.fix_missing_locations(func_ast)
-        module_compile = compile(func_ast, '<string>', "exec")
+        module_compile = compile(func_ast, inspect.getsourcefile(func), "exec")
         exec(module_compile, globals())
 
         modified_func = globals()[func.__name__]
