@@ -21,11 +21,11 @@
 title: "__Mifflin__: A blog about Python"
 email: yolann.sabaux@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
-  A blog in which I'll write about everything and nothing but especially programmation
+  I just want to escape from Ufuk because I'm a little stitious
 baseurl: /blog # the subpath of your site, e.g. /blog
 url: yolannsabaux.github.io  # the base hostname & protocol for your site, e.g. http://example.com
-twitter_username: jekyllrb
-github_username:  jekyll
+#twitter_username: jekyllrb
+github_username:  yosa-odoo
 
 # Build settings
 #markdown: kramdown

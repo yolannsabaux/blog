@@ -1,14 +1,53 @@
+* * *
+
+I initially thought to write it in one part, but it seemed too intense to do so. I divided it into three parts:
+- [Part 1](/blog/2024/04/19/recursive-decorator-AST-Approach.html): provides a quick description of what we aim to achieve, along with a clunky draft of a recursive decorator.
+- [Part 2](/blog/2024/04/19/recursive-decorator-troubleshooting-(part-2).html): corrects the draft to have a functional recursive decorator.
+- [Part 3](/blog/2024/04/19/recursive-decorator-Refinements-(part-3).html) (work in progress): utilizes the full set of tools from `ast` to make it even more beautiful.
+
+* * *
+
 # TL;DR
 
-The following describes the creation of a recursive decorator in Python that automatically applies itself not only to a decorated function but also to all nested (inner) functions within it, and to their nested functions in turn, ad infinitum and ad "au-delà".
+The aim is to apply a recursive decorator in Python that automatically applies itself not only to a decorated function but also to all nested (inner) functions within it, and to their nested functions in turn, ad infinitum and ad "au-delà".
 
-To achieve this, the method involves modifying the Abstract Syntax Tree (AST) of the function to inject the decorator dynamically at runtime. That is:
+```py
+def recursive_decorator(func):
+    def wrapper():
+            print(f"I'm decorating {func.__name__}")
+            ... # some magic code
+            return func
+    return wrapper
+
+def baz():
+    print("I'm baz")
+
+def bar():
+    print("I'm bar")
+    baz()
+        
+@recursive_decorator
+def foo():
+    print("I'm foo")
+    bar()
+```
+
+```text
+> foo()
+I'm decorating foo
+I'm foo
+I'm decorating bar
+I'm bar
+I'm decorating baz
+I'm baz
+```
+
+To do this, I'll implement a method modifying the Abstract Syntax Tree (AST) of the function to inject the decorator dynamically at runtime. That is:
 
 - Using the `ast` module to parse the function's code into an AST, allowing inspection and modification of its structure.
 - Identifying and modifying the relevant nodes in the AST to inject the decorator into nested function calls.
 - Compiling the modified AST back into executable code and executing it, effectively applying the decorator recursively to all nested functions.
 
-The process requires some basic understanding of Python's AST and a comprehension of dynamic inspection and execution of modified code via `inspect`, `compile`, and `exec`. Passed that, it demonstrates a powerful and fun method for runtime code manipulation in Python.
 
 ### Result
 ```py
@@ -57,44 +96,8 @@ def decorator(func):
         return modified_func(*args, **kwargs)
     return wrapper
 ```
-# Objective
 
-The aim is to apply the same decorator to all inner functions of the decorated function and applying it it on all inner functions of the inners functions and ... in other words have a recursive decorator.
-
-```py
-def recursive_decorator(func):
-    def wrapper():
-            print(f"I'm decorating {func.__name__}")
-            ... # some magic code
-            return func
-    return wrapper
-
-def baz():
-    print("I'm baz")
-
-def bar():
-    print("I'm bar")
-    baz()
-        
-@recursive_decorator
-def foo():
-    print("I'm foo")
-    bar()
-
-
-```
-
-```text
-> foo()
-I'm decorating foo
-I'm foo
-I'm decorating bar
-I'm bar
-I'm decorating baz
-I'm baz
-```
-
-# Methodology
+# Rough Design
 
 ## How to apply a decorator
 

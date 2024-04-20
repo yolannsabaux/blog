@@ -1,3 +1,12 @@
+* * *
+
+I initially thought to write it in one part, but it seemed too intense to do so. I divided it into three parts:
+- [Part 1](/blog/2024/04/19/recursive-decorator-AST-Approach.html): provides a quick description of what we aim to achieve, along with a clunky draft of a recursive decorator.
+- [Part 2](/blog/2024/04/19/recursive-decorator-troubleshooting-(part-2).html): corrects the draft to have a functional recursive decorator.
+- [Part 3](/blog/2024/04/19/recursive-decorator-Refinements-(part-3).html) (work in progress): utilizes the full set of tools from `ast` to make it even more beautiful.
+
+* * *
+
 ## Troubleshooting: Why Isn't My Decorator Working?
 
 **Indeed...**
@@ -123,7 +132,7 @@ Just add the arguments in args:
 ```
 
 ### Importing a Decorator from Another Module
-If you define your decorator in a `decorator.py` file and want to use it in `main.py`, you may encounter an error like:
+If you define your decorator in a `decorator.py` module and want to use it in `main.py`, you may encounter an error like:
 `NameError: name 'bar' is not defined`.
 
 This error occurs because the decorator lacks knowledge of the context within the `main.py` module. 
