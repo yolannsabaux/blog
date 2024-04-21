@@ -3,7 +3,7 @@
 I initially thought to write it in one part, but it seemed too intense to do so. I divided it into three parts:
 - [Part 1](/blog/2024/04/19/recursive-decorator-AST-Approach.html): provides a quick description of what we aim to achieve, along with a clunky draft of a recursive decorator.
 - [Part 2](/blog/2024/04/19/recursive-decorator-troubleshooting-(part-2).html): corrects the draft to have a functional recursive decorator.
-- [Part 3](/blog/2024/04/19/recursive-decorator-Refinements-(part-3).html) (work in progress): utilizes the full set of tools from `ast` to make it even more beautiful.
+- [Part 3](/blog/2024/04/19/recursive-decorator-Refinements-(part-3).html): utilizes the full set of tools from `ast` to make it even more beautiful.
 
 * * *
 
@@ -139,9 +139,8 @@ To view the AST, this code snippet can be used:
 
 ```python
 import ast
-import textwrap
 def get_ast(code):
-    print(ast.dump(ast.parse(textwrap.dedent(code)), indent=4))
+    print(ast.dump(ast.parse(code), indent=4))
 ```
 
 ```
@@ -351,7 +350,7 @@ Now that we have modified our AST, we need a way to make it understandable for t
 
 1. `fix_missing_locations` is used to fix the line numbers and column offsets that have changed following our AST modification; [documentation](https://docs.python.org/3/library/ast.html#ast.fix_missing_locations).
 2. Compiles a source (normal string, a byte string, or an AST object) into a code object. The filename of the function definition. And `exec` is the mode; [documentation](https://docs.python.org/3/library/functions.html#compile).
-3. The `exec` will bind (in the first iteration) our main function `foo` with a `code` object (`module_compile`) within a certain context (`globals()`) *(1).
+3. The `exec` will bind (in the first iteration) our main function `foo` with a `code` object (`module_compile`) within a certain context (`globals()`) <sup>*(1)</sup>.
 4. `exec` returns `None`. Therefore, we need to retrieve it directly where it is defined: in the `globals()`.
 
 And voilà!

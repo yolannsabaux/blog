@@ -8,7 +8,7 @@ title: Final recursive-decorator (Part 3)
 I initially thought to write it in one part, but it seemed too intense to do so. I divided it into three parts:
 - [Part 1](/blog/2024/04/19/recursive-decorator-AST-Approach.html): provides a quick description of what we aim to achieve, along with a clunky draft of a recursive decorator.
 - [Part 2](/blog/2024/04/19/recursive-decorator-troubleshooting-(part-2).html): corrects the draft to have a functional recursive decorator.
-- [Part 3](/blog/2024/04/19/recursive-decorator-Refinements-(part-3).html) (work in progress): utilizes the full set of tools from `ast` to make it even more beautiful.
+- [Part 3](/blog/2024/04/19/recursive-decorator-Refinements-(part-3).html): utilizes the full set of tools from `ast` to make it even more beautiful.
 
 * * *
 
@@ -17,6 +17,8 @@ In Part 2 of this series, we troubleshoot some basic issues.
 Rest assured, there are many others that we can find! Some of them will be fixed, while others will not be supported (e.g., assignment of lambda functions).
 
 The goal of this chapter is to make the use of the decorator possible in the following situations:
+
+#### Test Cases
 ```python
 from recursive_decorator import decorator
 
@@ -60,6 +62,7 @@ def foo():
     f.instance_method()
     f.static_method()
     f.class_method()
+    Foo.class_method()
 ```
 ```text
 > foo()
@@ -156,7 +159,7 @@ def visit_FunctionDef(self, node):
 ```
 Just like that!
 
-(When instantiating the class, we pass the `decorator_name` as a parameter.)
+When instantiating the class, just pass the `decorator_name` as a parameter: `RecursiveDecoratorTransformer(decorator.__name__)`
 
 ### Iterate over nodes (ast.Call)
 As we said, there is no need to iterate and check over the nodes.
@@ -194,7 +197,7 @@ def visit_Call(self, node):
         keywords=node.keywords
     )
 ```
-Similarly, we call `self.generic_visit(node)`. You could have nested calls such as in `baz(qux())`.
+Similarly, we call `self.generic_visit(node)`; You could have situations with nested calls such as in `baz(qux())`.
 
 This supports both `FunctionType` and `MethodType`. 
 The difference between the two is handled thanks to `node.func`. 
@@ -214,7 +217,7 @@ A better way is to filter out the builtins directly in the `visit_Call`:
 #def visit_Call(self, node):
 #    self.generic_visit(node)
     if isinstance(node.func, ast.Name) and node.func.id in __builtins__:
-        return self.generic_visit(node)
+        return node
 #    return ast.Call(
 ```
 We just added an extra check to only check functions (`ast.Name`) and not methods (`ast.Attribute`).
@@ -278,22 +281,94 @@ This will return the node directly without visiting its children.
     if not isinstance(func, (types.FunctionType, types.MethodType)):
         return func(*args, **kwargs)
 ```
-This means we only process functions and methods. 
+Blacklisting means that we only process functions and methods. 
 It's dirtier:
 - The filtering responsibility belongs to the NodeTransformer.
 - This situation occurs: `f = A()` -> `f = decorator(A)()`,
-but there might be corner cases I am not aware of.
+
+but there might be corner cases that are not covered.
 
 
+## You said classes?
+
+If you run the modified decorator with the "Test Cases" file containing classes, you will get two errors.
+
+### Indentation
+```python
+f = Foo()
+f.instance_method()
+```
+Will raise an error: "IndentationError: unexpected indent".
+
+The same applied if you call `get_ast` with:
+
+```text
+>>> get_ast("""
+...     def class_method(cls):
+...         print(f"I'm {class_method.__name__} Instance of {Foo.__name__}")
+...         baz(cls.x)
+... """)
+Traceback (most recent call last):
+...
+IndentationError: unexpected indent
+```
+
+The solution: just use the `textwrap` library
+```python
+import textwrap
+...
+source_code = textwrap.dedent(inspect.getsource(func))
+```
+
+### James Bind
+This one was trickier to solve. Run your code and you will get:
+`TypeError: instance_method() missing 1 required positional argument: 'self'`
+
+I tried many things (mainly out of despair). I even tried to take the original function and inject the code object of the modified function<sup>*(1)</sup>.
+
+Actually, the solution is quite simple (when you know it).
+
+If you run the following:
+```python
+class A:
+    def foo(self):
+        print("I'm Foo")
+
+def decorator(func):
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)  # break here
+    return wrapper
+
+if __name__ == '__main__':
+    f = A()
+    decorator(f.foo)()
+```
+and breaks on the `return func`, the object you get is:
+```
+<bound method A.foo of <__main__.A object at 0x721c52bc3730>>
+```
 
 
+But if you break on the `return modified_func(*args, **kwargs)` (from our decorator) when processing a method, you will get:
 
-  
-* dedent with `textwrap` (class methods have an indent)
-* `class 'method'` isinstance(node.func, ast.Name)
+```
+<function instance_method at 0x7b61c7f8f5b0>
+```
 
-[//]: # (https://stackoverflow.com/questions/56479418/indentationerror-during-ast-parse-and-ast-walk-of-a-function-which-is-a-meth)
+From there, you know that you need to bind the function to the instance.<sup>*(2)</sup>:
 
+```python
+# bind modified class method to instance
+if isinstance(func, types.MethodType):
+    instance = func.__self__
+    modified_func = modified_func.__get__(instance)
+```
+
+* * *
+<sup>*(1) You cannot modify the code object of a function. You can only create a new object from its code arguments with `CodeType`.
+But it is still a new object with no binding.</sup>
+
+<sup>*(2) I found the `__get__()` solution in the "Python Cookbook" (Beazley, Jones - 3rd edition) in the "9.9 Defining Decorators As Classes" recipe.</sup>
 
 
 ## Results
@@ -319,17 +394,14 @@ class RecursiveDecoratorTransformer(ast.NodeTransformer):
         return node
 
     def visit_FunctionDef(self, node):
-        node.decorator_list = [
-            d for d in node.decorator_list
-            if not d.id == self.decorator_name
-        ]
+        node.decorator_list = [d for d in node.decorator_list if not d.id == self.decorator_name]
         self.generic_visit(node)
         return node
 
     def visit_Call(self, node):
         self.generic_visit(node)
         if isinstance(node.func, ast.Name) and node.func.id in __builtins__:
-            return self.generic_visit(node)
+            return node
         return ast.Call(
             func=ast.Call(
                 func=ast.Name(id=decorator.__name__, ctx=ast.Load()),
@@ -361,7 +433,7 @@ def decorator(func):
         # Retrieving the modified function from the context
         modified_func = func.__globals__[func.__name__]
 
-        # bind modified class method to instance
+        # bind modified method to instance
         if isinstance(func, types.MethodType):
             instance = func.__self__
             modified_func = modified_func.__get__(instance)
@@ -372,14 +444,22 @@ def decorator(func):
 
 ## The beginning of the journey
 
-Again?
-Yes, there are still lots of improvements that can be done:
-- Debugging is a nightmare. We are creating all new objects with the `co_lineno` that are not correct (even if presents thanks the `ast.fix_missing_locations`).
-A solution would be to take the code arguments of the `original_func`, take the __code__ of the modified function and create a new object from it.
-- AST don't contain informations about comments. A solution would be to use a CST (Concrete Syntax Tree) but are no tools in the Standard Library and I wanted to do this in "Pure Python" (See [LibCST](https://libcst.readthedocs.io/en/latest/))
+Ah oui?
+Yes, there are still lots of improvements that can be made:
+- Debugging is a nightmare. We are creating all new objects with the `co_lineno` that are not correct (even if corrected thanks to `ast.fix_missing_locations`).
+A solution would be to take the code arguments of the `original_func`, take the `__code__` of the modified function, and create a new object from it (see [original idea](https://blog.elishalom.com/tag/ast/)).
+- ASTs don't contain information about comments. A solution would be to use a CST (Concrete Syntax Tree), but there are no tools in the Standard Library, and I wanted to do this in "Pure Python" (See [LibCST](https://libcst.readthedocs.io/en/latest/)).
 - What about `functools.wraps`? It's THE decorator of decorators. 
-Since we are creating new objects from the AST there no metadata to be preserved. Might be usefull if the first points are implemented.
+Since we are creating new objects from the AST, there is no metadata to be preserved. Might be useful if the first points are implemented.
 
 If you are reading those lines, ça veut dire que tu me connais. Si c'est toi Hugo, je te paye une bière.
-
 Byeeee!
+
+Ah yes, this code does not work for class method:
+```python
+f.class_method()
+Foo.class_method()
+```
+
+Will you find why? 
+Cheers
