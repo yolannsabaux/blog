@@ -87,7 +87,7 @@ The faulty line is `expr_node = func_def_node.body[0]`. We are accessing **only*
 The solution is to iterate over every node and only process the ones of interest. So, instead of _assigning_ `expr_node = func_def_node.body[0]`, we will _iterate_ over `func_def_node.body`:
 ```python
 for node in func_def_node.body:
-    if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+    if not isinstance(node.value, ast.Call):
         continue
 
     node_func = node.value.func
@@ -219,7 +219,7 @@ def decorator(func):
                 break
 
         for node in func_def_node.body:
-            if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+            if not isinstance(node.value, ast.Call):
                 continue
 
             node_func = node.value.func

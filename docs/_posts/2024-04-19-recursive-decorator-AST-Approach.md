@@ -79,7 +79,7 @@ def decorator(func):
                 break
 
         for node in func_def_node.body:
-            if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+            if not isinstance(node.value, ast.Call):
                 continue
 
             node_func = node.value.func
@@ -139,8 +139,9 @@ To view the AST, this code snippet can be used:
 
 ```python
 import ast
+import textwrap
 def get_ast(code):
-    print(ast.dump(ast.parse(code), indent=4))
+    print(ast.dump(ast.parse(textwrap.dedent(code)), indent=4))
 ```
 
 ```
