@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1cafd75d-7e2e-496b-8a67-48f538cd48e6" name="Changes" comment="" />
+    <list default="true" id="1cafd75d-7e2e-496b-8a67-48f538cd48e6" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/favicon-32x32.png" beforeDir="false" afterPath="$PROJECT_DIR$/images/_favicon-32x32.png" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -28,7 +31,7 @@
   &quot;keyToString&quot;: {
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;reverie-theme&quot;,
     &quot;last_opened_file_path&quot;: &quot;/home/odoo/repositories/yolannnsabaux.github.io/docs/_posts&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -72,6 +75,8 @@
       <workItem from="1713603488069" duration="31430000" />
       <workItem from="1713772644942" duration="65000" />
       <workItem from="1713773713755" duration="354000" />
+      <workItem from="1713800416149" duration="4375000" />
+      <workItem from="1713861406726" duration="712000" />
     </task>
     <servers />
   </component>

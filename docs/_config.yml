@@ -3,7 +3,7 @@
 #
 
 # Name of your site (displayed in the header)
-name: __Mifllin__
+name: __mifllin__
 
 # Name of the author
 author: Yolann Sabaux
@@ -86,6 +86,7 @@ plugins:
   - jekyll-feed # Create an Atom feed using the official Jekyll feed gem
   - jekyll-seo-tag
   - jekyll-paginate
+  - jekyll-redirect-from
 
 include: ['_pages']
 
