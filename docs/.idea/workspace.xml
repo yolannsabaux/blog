@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="1cafd75d-7e2e-496b-8a67-48f538cd48e6" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/_sass/_darcula.scss" beforeDir="false" afterPath="$PROJECT_DIR$/_sass/_darcula.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/style.scss" beforeDir="false" afterPath="$PROJECT_DIR$/assets/style.scss" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,7 +32,7 @@
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;reverie-theme&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/odoo/repositories/yolannnsabaux.github.io/docs/_posts&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/odoo/repositories/yolannnsabaux.github.io/docs/images&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -43,11 +43,11 @@
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/images" />
       <recent name="$PROJECT_DIR$/_posts" />
       <recent name="$PROJECT_DIR$/assets" />
       <recent name="$PROJECT_DIR$/_site/2024/04/19/assets" />
       <recent name="$PROJECT_DIR$/_site/assets" />
-      <recent name="$PROJECT_DIR$/_site/2024/04/19" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/_site/2024/04/19" />
@@ -78,6 +78,8 @@
       <workItem from="1713800416149" duration="4375000" />
       <workItem from="1713861406726" duration="712000" />
       <workItem from="1713952941090" duration="600000" />
+      <workItem from="1714124623154" duration="12082000" />
+      <workItem from="1714399274283" duration="1334000" />
     </task>
     <servers />
   </component>
